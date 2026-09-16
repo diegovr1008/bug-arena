@@ -1,0 +1,903 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Bug Arena</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'arena/arena.css' %}"
+    >
+
+</head>
+
+
+<body
+
+    data-efeito="{{ efeito }}"
+
+    data-critico="{{ critico|yesno:'true,false' }}"
+
+    data-venceu="{{ venceu|yesno:'true,false' }}"
+
+>
+
+
+<main class="page-shell">
+
+
+    <!-- ================================== -->
+    <!-- CABEÇALHO -->
+    <!-- ================================== -->
+
+    <header class="topbar">
+
+        <div>
+
+            <span class="eyebrow">
+                DESENVOLVIMENTO DE SISTEMAS
+            </span>
+
+            <h1>
+                ⚔ BUG ARENA
+            </h1>
+
+            <p>
+
+                Derrote o
+
+                <strong>
+                    Production Bug
+                </strong>
+
+                antes que ele
+                derrube seu deploy.
+
+            </p>
+
+        </div>
+
+
+        <div class="turn-card">
+
+            <span>
+                Turno
+            </span>
+
+            <strong>
+                {{ turno }}
+            </strong>
+
+        </div>
+
+    </header>
+
+
+    <!-- ================================== -->
+    <!-- NOME + PONTUAÇÃO -->
+    <!-- ================================== -->
+
+    <section class="name-panel">
+
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:nome' %}"
+
+            class="name-form"
+        >
+
+            {% csrf_token %}
+
+
+            <label for="nome">
+
+                Nome da Squad
+
+            </label>
+
+
+            <input
+
+                id="nome"
+
+                name="nome"
+
+                value="{{ nome }}"
+
+                maxlength="20"
+            >
+
+
+            <button
+
+                type="submit"
+
+                class="small-button"
+            >
+
+                Salvar
+
+            </button>
+
+        </form>
+
+
+        <div class="score">
+
+            <span>
+                PONTOS
+            </span>
+
+            <strong>
+                {{ pontos }}
+            </strong>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================== -->
+    <!-- ARENA -->
+    <!-- ================================== -->
+
+    <section class="arena-grid">
+
+
+        <!-- PLAYER -->
+
+        <article
+
+            class="fighter player-card"
+
+            id="player-card"
+        >
+
+
+            <div class="fighter-title">
+
+                <div class="avatar">
+
+                    👨‍💻
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        PLAYER
+                    </small>
+
+                    <h2>
+                        {{ nome }}
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="hp-line">
+
+                <span>
+                    HP
+                </span>
+
+                <strong>
+
+                    {{ hp_jogador }}
+
+                    /
+
+                    {{ hp_max_jogador }}
+
+                </strong>
+
+            </div>
+
+
+            <div class="hp-track">
+
+                <div
+
+                    class="hp-fill player-hp"
+
+                    style="
+                        width:
+                        {{ hp_jogador_pct }}%
+                    "
+                ></div>
+
+            </div>
+
+
+            <div class="player-meta">
+
+                <span>
+                    ⚔ Dano total
+                </span>
+
+                <strong>
+                    {{ dano_total }}
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <!-- VS -->
+
+        <div class="versus">
+
+            VS
+
+        </div>
+
+
+        <!-- BOSS -->
+
+        <article
+
+            class="fighter boss-card"
+
+            id="boss-card"
+        >
+
+
+            <div class="fighter-title boss-title">
+
+
+                <div>
+
+                    <small>
+                        BOSS
+                    </small>
+
+                    <h2>
+                        Production Bug
+                    </h2>
+
+                </div>
+
+
+                <div class="avatar boss-avatar">
+
+                    👹
+
+                </div>
+
+            </div>
+
+
+            <div class="hp-line">
+
+                <span>
+                    HP
+                </span>
+
+                <strong>
+
+                    {{ hp_boss }}
+
+                    /
+
+                    {{ hp_max_boss }}
+
+                </strong>
+
+            </div>
+
+
+            <div class="hp-track">
+
+                <div
+
+                    class="hp-fill boss-hp"
+
+                    style="
+                        width:
+                        {{ hp_boss_pct }}%
+                    "
+                ></div>
+
+            </div>
+
+
+            <blockquote>
+
+                “{{ boss_fala }}”
+
+            </blockquote>
+
+
+        </article>
+
+    </section>
+
+
+    <!-- ================================== -->
+    <!-- LOG DA BATALHA -->
+    <!-- ================================== -->
+
+    <section
+
+        class="battle-log"
+
+        id="battle-log"
+    >
+
+
+        <div class="log-label">
+
+            BATTLE LOG
+
+        </div>
+
+
+        <p>
+
+            {{ mensagem }}
+
+        </p>
+
+
+        {% if critico %}
+
+            <div
+
+                class="critical-badge"
+
+                id="critical-badge"
+            >
+
+                💥 ATAQUE CRÍTICO!
+
+            </div>
+
+        {% endif %}
+
+
+    </section>
+
+
+    <!-- ================================== -->
+    <!-- BOTÕES -->
+    <!-- ================================== -->
+
+    <section class="actions">
+
+
+        <!-- ATAQUE -->
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:acao' 'atacar' %}"
+        >
+
+            {% csrf_token %}
+
+
+            <button
+
+                class="action attack"
+
+                {% if terminou %}
+                    disabled
+                {% endif %}
+            >
+
+
+                <span class="action-icon">
+
+                    ⚔️
+
+                </span>
+
+
+                <span>
+
+                    <strong>
+                        ATACAR
+                    </strong>
+
+                    <small>
+                        8–18 de dano
+                    </small>
+
+                </span>
+
+
+            </button>
+
+        </form>
+
+
+        <!-- ESPECIAL -->
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:acao' 'especial' %}"
+        >
+
+            {% csrf_token %}
+
+
+            <button
+
+                class="action special"
+
+                {% if terminou %}
+                    disabled
+                {% endif %}
+            >
+
+
+                <span class="action-icon">
+
+                    🔥
+
+                </span>
+
+
+                <span>
+
+                    <strong>
+                        ESPECIAL
+                    </strong>
+
+
+                    {% if cooldown_restante > 0 %}
+
+                        <small>
+
+                            carregando:
+
+                            {{ cooldown_restante }}
+
+                            turno(s)
+
+                        </small>
+
+                    {% else %}
+
+                        <small>
+
+                            20–35 · pode falhar
+
+                        </small>
+
+                    {% endif %}
+
+                </span>
+
+
+            </button>
+
+        </form>
+
+
+        <!-- CURAR -->
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:acao' 'curar' %}"
+        >
+
+            {% csrf_token %}
+
+
+            <button
+
+                class="action heal"
+
+                {% if terminou %}
+                    disabled
+                {% endif %}
+            >
+
+
+                <span class="action-icon">
+
+                    💚
+
+                </span>
+
+
+                <span>
+
+                    <strong>
+                        CURAR
+                    </strong>
+
+                    <small>
+                        recupere 10–20 HP
+                    </small>
+
+                </span>
+
+
+            </button>
+
+        </form>
+
+
+    </section>
+
+
+    <!-- ================================== -->
+    <!-- FIM DO JOGO -->
+    <!-- ================================== -->
+
+    {% if terminou %}
+
+
+    <section
+
+        class="
+            game-over
+
+            {% if venceu %}
+                victory
+            {% else %}
+                defeat
+            {% endif %}
+        "
+    >
+
+
+        {% if venceu %}
+
+
+            <div class="game-over-icon">
+
+                🏆
+
+            </div>
+
+
+            <h2>
+
+                DEPLOY SALVO!
+
+            </h2>
+
+
+            <p>
+
+                O Production Bug
+                foi eliminado.
+
+            </p>
+
+
+        {% else %}
+
+
+            <div class="game-over-icon">
+
+                ☠️
+
+            </div>
+
+
+            <h2>
+
+                BUILD QUEBRADA!
+
+            </h2>
+
+
+            <p>
+
+                O Production Bug
+                venceu esta rodada.
+
+            </p>
+
+
+        {% endif %}
+
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:reiniciar' %}"
+        >
+
+            {% csrf_token %}
+
+
+            <button class="restart-button">
+
+                ↻ JOGAR NOVAMENTE
+
+            </button>
+
+        </form>
+
+
+    </section>
+
+
+    {% endif %}
+
+
+    <!-- ================================== -->
+    <!-- RANKING + MISSÕES -->
+    <!-- ================================== -->
+
+    <section class="bottom-grid">
+
+
+        <!-- RANKING -->
+
+        <article class="ranking-card">
+
+
+            <div class="section-heading">
+
+
+                <span>
+                    🏆
+                </span>
+
+
+                <div>
+
+                    <small>
+                        LOCAL
+                    </small>
+
+                    <h3>
+                        RANKING
+                    </h3>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="ranking-list">
+
+
+                {% for item in ranking %}
+
+
+                <div
+
+                    class="
+                        ranking-row
+
+                        {% if item.jogador %}
+                            you
+                        {% endif %}
+                    "
+                >
+
+
+                    <span class="position">
+
+
+                        {% if item.posicao == 1 %}
+
+                            🥇
+
+                        {% elif item.posicao == 2 %}
+
+                            🥈
+
+                        {% elif item.posicao == 3 %}
+
+                            🥉
+
+                        {% else %}
+
+                            {{ item.posicao }}º
+
+                        {% endif %}
+
+
+                    </span>
+
+
+                    <span class="rank-name">
+
+                        {{ item.nome }}
+
+                    </span>
+
+
+                    <strong>
+
+                        {{ item.pontos }}
+
+                    </strong>
+
+
+                </div>
+
+
+                {% endfor %}
+
+
+            </div>
+
+        </article>
+
+
+        <!-- MISSÕES -->
+
+        <article class="mission-card">
+
+
+            <div class="section-heading">
+
+
+                <span>
+                    🧩
+                </span>
+
+
+                <div>
+
+                    <small>
+                        ARQUIVO
+                    </small>
+
+                    <h3>
+
+                        arena/game.py
+
+                    </h3>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟢
+                </span>
+
+                <p>
+
+                    <strong>
+                        Missão 1
+                    </strong>
+
+                    <br>
+
+                    Ataque normal
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟢
+                </span>
+
+                <p>
+
+                    <strong>
+                        Missão 2
+                    </strong>
+
+                    <br>
+
+                    Cura
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟡
+                </span>
+
+                <p>
+
+                    <strong>
+                        Desafio
+                    </strong>
+
+                    <br>
+
+                    Ataque crítico
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🔴
+                </span>
+
+                <p>
+
+                    <strong>
+                        Boss Challenge
+                    </strong>
+
+                    <br>
+
+                    Especial + cooldown
+
+                </p>
+
+            </div>
+
+
+        </article>
+
+
+    </section>
+
+
+</main>
+
+
+<div
+
+    class="flash"
+
+    id="flash"
+
+></div>
+
+
+<div
+
+    class="confetti"
+
+    id="confetti"
+
+></div>
+
+
+<script
+
+    src="{% static 'arena/arena.js' %}"
+
+></script>
+
+
+</body>
+
+</html>

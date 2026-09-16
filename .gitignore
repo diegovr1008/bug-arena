@@ -1,0 +1,19 @@
+#Ambiente Virtual
+
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+#Django
+db.sqlite3
+
+#VS Code
+.vscode/
+
+#Sistema Operacional
+.DS_Store
+Thumbs.db
