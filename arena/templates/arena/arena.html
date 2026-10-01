@@ -152,6 +152,64 @@
 
 
     <!-- ================================== -->
+    <!-- MISSÃO EXTRA — ESCOLHA DE DIFICULDADE -->
+    <!-- ================================== -->
+
+    {% if not dificuldade_escolhida %}
+
+    <section class="name-panel">
+
+        <div>
+
+            <h2>Escolha a dificuldade</h2>
+
+            <p>{{ mensagem }}</p>
+
+        </div>
+
+
+        <form
+            method="post"
+            action="{% url 'arena:dificuldade' %}"
+            style="display: flex; gap: 0.5rem;"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                name="dificuldade"
+                value="facil"
+                class="small-button"
+            >
+                ★ Fácil
+            </button>
+
+            <button
+                type="submit"
+                name="dificuldade"
+                value="normal"
+                class="small-button"
+            >
+                ★★ Normal
+            </button>
+
+            <button
+                type="submit"
+                name="dificuldade"
+                value="dificil"
+                class="small-button"
+            >
+                ★★★ Difícil
+            </button>
+
+        </form>
+
+    </section>
+
+    {% else %}
+
+    <!-- ================================== -->
     <!-- ARENA -->
     <!-- ================================== -->
 
@@ -543,7 +601,56 @@
         </form>
 
 
+        <!-- DEFENDER -->
+
+        <form
+
+            method="post"
+
+            action="{% url 'arena:acao' 'defender' %}"
+        >
+
+            {% csrf_token %}
+
+
+            <button
+
+                class="action defend"
+
+                {% if terminou %}
+                    disabled
+                {% endif %}
+            >
+
+
+                <span class="action-icon">
+
+                    🛡️
+
+                </span>
+
+
+                <span>
+
+                    <strong>
+                        DEFENDER
+                    </strong>
+
+                    <small>
+                        -50% no próximo golpe
+                    </small>
+
+                </span>
+
+
+            </button>
+
+        </form>
+
+
     </section>
+
+    {% endif %}
 
 
     <!-- ================================== -->
@@ -825,7 +932,7 @@
             <div class="mission-row">
 
                 <span>
-                    🟡
+                    🟢
                 </span>
 
                 <p>
@@ -846,7 +953,7 @@
             <div class="mission-row">
 
                 <span>
-                    🔴
+                    🟢
                 </span>
 
                 <p>
@@ -858,6 +965,69 @@
                     <br>
 
                     Especial + cooldown
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟢
+                </span>
+
+                <p>
+
+                    <strong>
+                        Extra ★
+                    </strong>
+
+                    <br>
+
+                    Defender
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟢
+                </span>
+
+                <p>
+
+                    <strong>
+                        Extra ★★
+                    </strong>
+
+                    <br>
+
+                    Escolha de dificuldade
+
+                </p>
+
+            </div>
+
+
+            <div class="mission-row">
+
+                <span>
+                    🟢
+                </span>
+
+                <p>
+
+                    <strong>
+                        Extra ★★★
+                    </strong>
+
+                    <br>
+
+                    Queimadura
 
                 </p>
 

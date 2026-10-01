@@ -22,6 +22,34 @@ HP_MAX_BOSS = 120
 
 
 # ============================================
+# MISSÃO EXTRA ★★ — ESCOLHA DE DIFICULDADE
+# ============================================
+#
+# Cada dificuldade altera o HP do Boss e
+# um multiplicador aplicado no dano que
+# o Boss causa no contra-ataque.
+
+DIFICULDADES = {
+
+    "facil": {
+        "hp_boss": 90,
+        "mult_dano_boss": 0.7,
+    },
+
+    "normal": {
+        "hp_boss": 120,
+        "mult_dano_boss": 1.0,
+    },
+
+    "dificil": {
+        "hp_boss": 150,
+        "mult_dano_boss": 1.3,
+    },
+
+}
+
+
+# ============================================
 # MISSÃO 1 + DESAFIO
 # ============================================
 
@@ -50,7 +78,7 @@ def ataque_normal():
     # Gere um dano aleatório
     # entre 8 e 18.
 
-    dano = 0
+    dano = random.randint(8, 18)
 
 
     # TODO 2
@@ -58,7 +86,7 @@ def ataque_normal():
     # Crie 20% de chance
     # de ataque crítico.
 
-    critico = False
+    critico = random.random() < 0.2
 
 
     # TODO 3
@@ -66,6 +94,9 @@ def ataque_normal():
     # Se for crítico:
     #
     # dano = dano * 2
+
+    if critico:
+        dano = dano * 2
 
 
     return dano, critico
@@ -108,6 +139,8 @@ def curar(hp_atual):
     # Sorteie uma cura
     # entre 10 e 20.
 
+    cura_sorteada = random.randint(10, 20)
+
 
     # TODO 2
     #
@@ -117,7 +150,7 @@ def curar(hp_atual):
     #
     # HP máximo = 100
 
-    novo_hp = hp_atual
+    novo_hp = min(100, hp_atual + cura_sorteada)
 
 
     # TODO 3
@@ -125,10 +158,67 @@ def curar(hp_atual):
     # Calcule quanto realmente
     # foi recuperado.
 
-    quantidade_curada = 0
+    quantidade_curada = novo_hp - hp_atual
 
 
     return novo_hp, quantidade_curada
+
+
+# ============================================
+# MISSÃO EXTRA ★ — DEFENDER
+# ============================================
+#
+# O jogador abre mão do ataque nesta rodada
+# para reduzir o próximo contra-ataque do
+# Boss em 50%.
+
+def defender():
+
+    """
+    Retorna:
+
+        reducao    (fração, 0.5 = -50%)
+        mensagem
+    """
+
+    reducao = 0.5
+
+    mensagem = (
+        "🛡️ Você se preparou para o golpe! "
+        "O próximo contra-ataque do Boss "
+        "será reduzido em 50%."
+    )
+
+    return reducao, mensagem
+
+
+# ============================================
+# MISSÃO EXTRA ★★★ — QUEIMADURA
+# ============================================
+#
+# Todo ataque CRÍTICO tem 50% de chance de
+# incendiar o Boss: 4 de dano extra por
+# turno, durante 3 turnos.
+
+def tentar_aplicar_queimadura(critico):
+
+    """
+    Retorna:
+
+        aplicou
+        turnos
+        dano_por_turno
+    """
+
+    if not critico:
+        return False, 0, 0
+
+    aplicou = random.random() < 0.5
+
+    if not aplicou:
+        return False, 0, 0
+
+    return True, 3, 4
 
 
 # ============================================
@@ -181,10 +271,57 @@ def ataque_especial(
 
     # TODO BOSS CHALLENGE
 
+    # Ainda em cooldown?
+    # (ultimo_especial < 0 significa "nunca usado ainda")
+
+    if (
+        ultimo_especial >= 0
+        and (turno - ultimo_especial) < 3
+    ):
+
+        turnos_restantes = 3 - (turno - ultimo_especial)
+
+        return (
+            0,
+            False,
+            ultimo_especial,
+            f"⏳ Especial em cooldown! "
+            f"Faltam {turnos_restantes} turno(s)."
+        )
+
+
+    # 30% de chance de falhar
+    # => 70% de chance de acertar
+
+    acertou = random.random() >= 0.3
+
+
+    if acertou:
+
+        dano = random.randint(20, 35)
+
+        mensagem = (
+            f"🔥 ESPECIAL! "
+            f"Você causou {dano} de dano!"
+        )
+
+    else:
+
+        dano = 0
+
+        mensagem = "🔥 O ataque especial falhou!"
+
+
+    # Independente de acertar ou errar,
+    # o especial entra em cooldown a partir
+    # deste turno.
+
+    novo_ultimo_especial = turno
+
 
     return (
-        0,
-        False,
-        ultimo_especial,
-        "🔥 Especial ainda não implementado"
+        dano,
+        acertou,
+        novo_ultimo_especial,
+        mensagem
     )

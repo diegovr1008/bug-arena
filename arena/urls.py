@@ -27,6 +27,12 @@ urlpatterns = [
     ),
 
     path(
+        "dificuldade/",
+        views.definir_dificuldade,
+        name="dificuldade"
+    ),
+
+    path(
         "reiniciar/",
         views.reiniciar,
         name="reiniciar"

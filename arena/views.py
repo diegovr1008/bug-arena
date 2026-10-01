@@ -11,12 +11,14 @@ from django.shortcuts import (
 )
 
 from .game import (
-    HP_MAX_BOSS,
+    DIFICULDADES,
     HP_MAX_JOGADOR,
     ataque_boss,
     ataque_especial,
     ataque_normal,
     curar,
+    defender,
+    tentar_aplicar_queimadura,
 )
 
 
@@ -70,16 +72,30 @@ RANKING_BASE = [
 # ============================================
 
 def estado_inicial(
-    nome="Squad Django"
+    nome="Squad Django",
+    dificuldade="normal"
 ):
+
+    if dificuldade not in DIFICULDADES:
+        dificuldade = "normal"
+
+    config = DIFICULDADES[dificuldade]
 
     return {
 
         "nome": nome,
 
+        "dificuldade": dificuldade,
+
+        "dificuldade_escolhida": False,
+
         "hp_jogador": HP_MAX_JOGADOR,
 
-        "hp_boss": HP_MAX_BOSS,
+        "hp_boss": config["hp_boss"],
+
+        "hp_boss_max": config["hp_boss"],
+
+        "mult_dano_boss": config["mult_dano_boss"],
 
         "turno": 1,
 
@@ -89,8 +105,14 @@ def estado_inicial(
 
         "ultimo_especial": -99,
 
+        "reducao_proximo_dano": 0,
+
+        "queimadura_turnos": 0,
+
+        "queimadura_dano": 0,
+
         "mensagem":
-            "⚔️ O Production Bug apareceu!",
+            "⚔️ Escolha a dificuldade para começar!",
 
         "boss_fala":
             "EU FUNCIONAVA ONTEM!",
@@ -112,9 +134,28 @@ def obter_estado(request):
         "arena_estado"
     )
 
-    if not estado:
+    # Se não existe estado salvo, ou se é um
+    # estado "antigo" (de antes das missões
+    # extras) e está faltando algum campo novo,
+    # começa um estado novo do zero.
 
-        estado = estado_inicial()
+    if (
+        not estado
+        or
+        "hp_boss_max" not in estado
+        or
+        "dificuldade_escolhida" not in estado
+    ):
+
+        nome_anterior = (
+            estado.get("nome", "Squad Django")
+            if estado
+            else "Squad Django"
+        )
+
+        estado = estado_inicial(
+            nome_anterior
+        )
 
         request.session[
             "arena_estado"
@@ -278,7 +319,7 @@ def arena(request):
             HP_MAX_JOGADOR,
 
         "hp_max_boss":
-            HP_MAX_BOSS,
+            estado["hp_boss_max"],
 
         "hp_jogador_pct":
             max(
@@ -296,7 +337,7 @@ def arena(request):
                 (
                     estado["hp_boss"]
                     /
-                    HP_MAX_BOSS
+                    estado["hp_boss_max"]
                 ) * 100
             ),
 
@@ -314,6 +355,9 @@ def arena(request):
 
         "ranking":
             montar_ranking(estado),
+
+        "dificuldades":
+            list(DIFICULDADES.keys()),
 
     }
 
@@ -361,6 +405,18 @@ def executar_acao(
     estado = obter_estado(
         request
     )
+
+
+    # Se a dificuldade ainda não
+    # foi escolhida, não há ação.
+
+    if not estado.get(
+        "dificuldade_escolhida"
+    ):
+
+        return redirect(
+            "arena:arena"
+        )
 
 
     # Se alguém já morreu,
@@ -442,6 +498,33 @@ def executar_acao(
                 f"Você causou "
                 f"{dano_real} de dano!"
             )
+
+
+            # ------------------------------------
+            # MISSÃO EXTRA — QUEIMADURA
+            # ------------------------------------
+
+            (
+                aplicou_queimadura,
+                turnos_queimadura,
+                dano_queimadura
+            ) = tentar_aplicar_queimadura(
+                critico
+            )
+
+            if aplicou_queimadura:
+
+                estado["queimadura_turnos"] = (
+                    turnos_queimadura
+                )
+
+                estado["queimadura_dano"] = (
+                    dano_queimadura
+                )
+
+                estado["mensagem"] += (
+                    " 🔥 O Boss pegou fogo!"
+                )
 
         else:
 
@@ -552,10 +635,63 @@ def executar_acao(
             estado["efeito"] = "boss"
 
 
+    # ========================================
+    # DEFENDER
+    # ========================================
+
+    elif acao == "defender":
+
+        reducao, mensagem = defender()
+
+        estado["reducao_proximo_dano"] = (
+            reducao
+        )
+
+        estado["mensagem"] = mensagem
+
+        estado["efeito"] = "defesa"
+
+
     else:
 
         return redirect(
             "arena:arena"
+        )
+
+
+    # ========================================
+    # QUEIMADURA (tick por turno)
+    # ========================================
+
+    if estado.get("queimadura_turnos", 0) > 0:
+
+        dano_queimadura = estado[
+            "queimadura_dano"
+        ]
+
+        dano_real_queimadura = min(
+            dano_queimadura,
+            estado["hp_boss"]
+        )
+
+        estado["hp_boss"] = max(
+            0,
+            estado["hp_boss"] - dano_queimadura
+        )
+
+        estado["dano_total"] += (
+            dano_real_queimadura
+        )
+
+        estado["pontos"] += (
+            dano_real_queimadura * 5
+        )
+
+        estado["queimadura_turnos"] -= 1
+
+        estado["mensagem"] += (
+            f" 🔥 A queimadura causou "
+            f"{dano_real_queimadura} de dano."
         )
 
 
@@ -606,6 +742,34 @@ def executar_acao(
     dano_recebido = (
         ataque_boss()
     )
+
+
+    # MISSÃO EXTRA — DIFICULDADE
+    # aplica o multiplicador de dano do Boss
+
+    dano_recebido = int(
+        dano_recebido
+        *
+        estado.get("mult_dano_boss", 1.0)
+    )
+
+
+    # MISSÃO EXTRA — DEFENDER
+    # reduz o golpe se o jogador se defendeu
+
+    if estado.get("reducao_proximo_dano", 0) > 0:
+
+        dano_recebido = int(
+            dano_recebido
+            *
+            (1 - estado["reducao_proximo_dano"])
+        )
+
+        estado["reducao_proximo_dano"] = 0
+
+        estado["mensagem"] += (
+            " 🛡️ Sua defesa reduziu o golpe!"
+        )
 
 
     estado["hp_jogador"] = max(
@@ -705,6 +869,59 @@ def definir_nome(request):
     salvar_estado(
         request,
         estado
+    )
+
+
+    return redirect(
+        "arena:arena"
+    )
+
+
+# ============================================
+# DIFICULDADE
+# ============================================
+
+def definir_dificuldade(request):
+
+    if request.method != "POST":
+
+        return HttpResponseNotAllowed(
+            ["POST"]
+        )
+
+
+    estado_atual = obter_estado(
+        request
+    )
+
+
+    dificuldade = request.POST.get(
+        "dificuldade",
+        "normal"
+    )
+
+
+    nome = estado_atual.get(
+        "nome",
+        "Squad Django"
+    )
+
+
+    novo_estado = estado_inicial(
+        nome,
+        dificuldade
+    )
+
+    novo_estado["dificuldade_escolhida"] = True
+
+    novo_estado["mensagem"] = (
+        "⚔️ O Production Bug apareceu!"
+    )
+
+
+    salvar_estado(
+        request,
+        novo_estado
     )
 
 
