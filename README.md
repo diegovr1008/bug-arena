@@ -1,4 +1,4 @@
-# ⚔ Bug Arena
+# Bug Arena
 
 Jogo de batalha por turnos feito em Django, criado para a disciplina de
 Desenvolvimento de Sistemas (SENAI TDS). O jogador enfrenta o **Production
